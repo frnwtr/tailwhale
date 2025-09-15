@@ -15,6 +15,8 @@ type Orchestrator struct {
     Host     string
     Tailnet  string
     Manager  ts.Manager
+    // Optional write callback to persist TLS config (e.g., to file)
+    WriteTLS func(tcfg.TLSConfig) error
 }
 
 // SyncOnce discovers services and returns a TLS config view.
@@ -33,12 +35,36 @@ func (o Orchestrator) SyncOnce(ctx context.Context) ([]Service, tcfg.TLSConfig, 
         // Placeholder fallback paths
         tls[s.Host] = tcfg.TLSCert{CertFile: "/var/lib/tailwhale/certs/"+s.Name+".crt", KeyFile: "/var/lib/tailwhale/certs/"+s.Name+".key"}
     }
+    if o.WriteTLS != nil {
+        _ = o.WriteTLS(tls)
+    }
     _ = ctx // reserved for future timeouts/cancellations
     return svcs, tls, nil
 }
 
-// Watch is a simple loop that periodically syncs. Real impl will use events.
+// Watch listens for provider events; falls back to periodic sync if events unavailable.
 func (o Orchestrator) Watch(ctx context.Context, interval time.Duration, fn func([]Service, tcfg.TLSConfig)) error {
+    // Initial sync
+    if svcs, tls, err := o.SyncOnce(ctx); err == nil && fn != nil { fn(svcs, tls) }
+
+    w, err := o.Provider.Watch()
+    if err == nil && w != nil {
+        defer w.Close()
+        for {
+            select {
+            case <-ctx.Done():
+                return ctx.Err()
+            default:
+            }
+            if _, ok, _ := w.Next(); !ok {
+                break // fall back to ticker
+            }
+            svcs, tls, err := o.SyncOnce(ctx)
+            if err == nil && fn != nil { fn(svcs, tls) }
+        }
+    }
+
+    // Fallback ticker
     ticker := time.NewTicker(interval)
     defer ticker.Stop()
     for {
@@ -47,9 +73,7 @@ func (o Orchestrator) Watch(ctx context.Context, interval time.Duration, fn func
             return ctx.Err()
         case <-ticker.C:
             svcs, tls, err := o.SyncOnce(ctx)
-            if err == nil && fn != nil {
-                fn(svcs, tls)
-            }
+            if err == nil && fn != nil { fn(svcs, tls) }
         }
     }
 }
