@@ -43,6 +43,17 @@
 - Hook enforcement: Husky `commit-msg` validates Conventional Commits; `pre-commit` runs `pnpm -C ui typecheck && pnpm -C ui lint`. Run `pnpm install` in `ui/` so `prepare` installs hooks.
 - PRs: include description, linked issues, affected exposure modes (A/B/C), test evidence (`go test` output or UI screenshots), and upgrade notes if user-facing behavior changes. If UI deps change, commit `pnpm-lock.yaml` updates. Use the template in `.github/pull_request_template.md`.
 
+## Branching Workflow
+- Stay updated: `git fetch origin && git switch main && git pull --ff-only`.
+- Create a branch per task: `git switch -c feat/<scope>-<short-desc>` or `fix/<scope>-<short-desc>` (kebab-case).
+- Keep in sync: `git fetch origin && git rebase origin/main` (resolve conflicts, re-run tests).
+- Push and open PR: `git push -u origin <branch>` then `gh pr create` (or open on GitHub).
+- Do not commit directly to `main`.
+
+Helper script
+- `scripts/new-branch.sh -t feat -s cli -d "add watch mode" --push --pr`
+- Prompts if flags are omitted; always updates from `origin/main` first.
+
 ## Security & Configuration Tips
 - Never commit secrets; use `.env` and update `.env.example` when adding vars (e.g., Tailscale auth keys).
 - Restrict file writes to intended paths (e.g., `traefik/tls.yml`).
