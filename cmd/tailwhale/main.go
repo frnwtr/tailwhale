@@ -1,13 +1,17 @@
 package main
 
 import (
+    "context"
     "encoding/json"
     "flag"
     "fmt"
     "io"
     "os"
+    "time"
 
     "github.com/frnwtr/tailwhale/internal/core"
+    "github.com/frnwtr/tailwhale/internal/dockerx"
+    traefik "github.com/frnwtr/tailwhale/internal/traefik"
 )
 
 // Version is set at build time via -ldflags if desired.
@@ -77,18 +81,32 @@ func run(args []string) int {
     case "sync":
         fs := flag.NewFlagSet("sync", flag.ContinueOnError)
         fs.SetOutput(errOut)
+        host := fs.String("host", "host", "host name for mode A/C")
+        tailnet := fs.String("tailnet", "tn", "tailnet name")
         if err := fs.Parse(args[1:]); err != nil {
             return 2
         }
-        fmt.Fprintln(out, "Sync not implemented yet")
+        orch := core.Orchestrator{Provider: &dockerx.FakeProvider{}, Host: *host, Tailnet: *tailnet}
+        svcs, tls, err := orch.SyncOnce(context.Background())
+        if err != nil { fmt.Fprintln(errOut, err); return 1 }
+        fmt.Fprintf(out, "Synced %d services\n", len(svcs))
+        fmt.Fprint(out, string(coreYaml(tls)))
         return 0
     case "watch":
         fs := flag.NewFlagSet("watch", flag.ContinueOnError)
         fs.SetOutput(errOut)
+        host := fs.String("host", "host", "host name for mode A/C")
+        tailnet := fs.String("tailnet", "tn", "tailnet name")
+        interval := fs.Duration("interval", 10*time.Second, "sync interval")
         if err := fs.Parse(args[1:]); err != nil {
             return 2
         }
-        fmt.Fprintln(out, "Watch not implemented yet")
+        orch := core.Orchestrator{Provider: &dockerx.FakeProvider{}, Host: *host, Tailnet: *tailnet}
+        ctx, cancel := context.WithCancel(context.Background())
+        defer cancel()
+        _ = orch.Watch(ctx, *interval, func(_ []core.Service, tlsCfg traefik.TLSConfig){
+            fmt.Fprint(out, string(coreYaml(tlsCfg)))
+        })
         return 0
     default:
         fmt.Fprintf(errOut, "unknown command: %s\n\n", args[0])
@@ -99,4 +117,20 @@ func run(args []string) int {
 
 func main() {
     os.Exit(run(os.Args[1:]))
+}
+
+type coreTLS = traefik.TLSConfig
+
+func coreYaml(t traefik.TLSConfig) []byte {
+    // tiny helper to print YAML-like output without external deps
+    type tlsCert struct{ CertFile, KeyFile string }
+    type tlsBlock struct{ Certificates []tlsCert }
+    // naive: order unspecified here; kept for preview only
+    var buf []byte
+    buf = append(buf, []byte("tls:\n  certificates:\n")...)
+    for _, c := range t {
+        buf = append(buf, []byte("    - certFile: \""+c.CertFile+"\"\n      keyFile: \""+c.KeyFile+"\"\n")...)
+    }
+    _ = tlsBlock{}
+    return buf
 }
