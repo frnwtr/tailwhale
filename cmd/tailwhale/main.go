@@ -12,6 +12,7 @@ import (
     "github.com/frnwtr/tailwhale/internal/core"
     "github.com/frnwtr/tailwhale/internal/dockerx"
     "github.com/frnwtr/tailwhale/internal/fsx"
+    "github.com/frnwtr/tailwhale/internal/appconfig"
     traefik "github.com/frnwtr/tailwhale/internal/traefik"
     ts "github.com/frnwtr/tailwhale/internal/tailscale"
 )
@@ -84,12 +85,22 @@ func run(args []string) int {
     case "sync":
         fs := flag.NewFlagSet("sync", flag.ContinueOnError)
         fs.SetOutput(errOut)
+        cfgPath := fs.String("config", "", "path to JSON config file")
         host := fs.String("host", "host", "host name for mode A/C")
         tailnet := fs.String("tailnet", "tn", "tailnet name")
         tlsPath := fs.String("tls-path", "traefik/tls.yml", "path to write Traefik TLS yaml")
         certDir := fs.String("cert-dir", "/var/lib/tailwhale/certs", "directory for issued certs (stub)")
         if err := fs.Parse(args[1:]); err != nil {
             return 2
+        }
+        // Merge config file (if provided) with flags (flags override)
+        if *cfgPath != "" {
+            if c, err := appconfig.Load(*cfgPath); err == nil {
+                if fs.Lookup("host").Value.String() == "host" && c.Host != "" { *host = c.Host }
+                if fs.Lookup("tailnet").Value.String() == "tn" && c.Tailnet != "" { *tailnet = c.Tailnet }
+                if fs.Lookup("tls-path").Value.String() == "traefik/tls.yml" && c.TLSPath != "" { *tlsPath = c.TLSPath }
+                if fs.Lookup("cert-dir").Value.String() == "/var/lib/tailwhale/certs" && c.CertDir != "" { *certDir = c.CertDir }
+            }
         }
         orch := core.Orchestrator{Provider: &dockerx.FakeProvider{}, Host: *host, Tailnet: *tailnet, Manager: &ts.FileManager{Dir: *certDir}}
         svcs, tls, err := orch.SyncOnce(context.Background())
@@ -105,6 +116,7 @@ func run(args []string) int {
     case "watch":
         fs := flag.NewFlagSet("watch", flag.ContinueOnError)
         fs.SetOutput(errOut)
+        cfgPath := fs.String("config", "", "path to JSON config file")
         host := fs.String("host", "host", "host name for mode A/C")
         tailnet := fs.String("tailnet", "tn", "tailnet name")
         tlsPath := fs.String("tls-path", "traefik/tls.yml", "path to write Traefik TLS yaml")
@@ -112,6 +124,14 @@ func run(args []string) int {
         interval := fs.Duration("interval", 10*time.Second, "sync interval (fallback)")
         if err := fs.Parse(args[1:]); err != nil {
             return 2
+        }
+        if *cfgPath != "" {
+            if c, err := appconfig.Load(*cfgPath); err == nil {
+                if fs.Lookup("host").Value.String() == "host" && c.Host != "" { *host = c.Host }
+                if fs.Lookup("tailnet").Value.String() == "tn" && c.Tailnet != "" { *tailnet = c.Tailnet }
+                if fs.Lookup("tls-path").Value.String() == "traefik/tls.yml" && c.TLSPath != "" { *tlsPath = c.TLSPath }
+                if fs.Lookup("cert-dir").Value.String() == "/var/lib/tailwhale/certs" && c.CertDir != "" { *certDir = c.CertDir }
+            }
         }
         provider := dockerx.NewProvider()
         orch := core.Orchestrator{Provider: provider, Host: *host, Tailnet: *tailnet}
