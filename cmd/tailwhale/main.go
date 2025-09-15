@@ -57,24 +57,21 @@ func run(args []string) int {
         fs := flag.NewFlagSet("list", flag.ContinueOnError)
         fs.SetOutput(errOut)
         jsonOut := fs.Bool("json", false, "output JSON")
+        fromFile := fs.String("from-file", "", "load containers from JSON file (for testing)")
         if err := fs.Parse(args[1:]); err != nil {
             return 2
         }
-        // Skeleton demo data using core naming
-        demo := []core.Service{{
-            ID:      "demo-1",
-            Name:    "demo",
-            Exposed: false,
-            Mode:    core.ModeA,
-            Host:    core.HostnameFor(core.ModeA, core.NameInput{Container: "demo", Host: "host", Tailnet: "tn"}),
-        }}
+        var provider dockerx.Provider
+        if *fromFile != "" { provider = &dockerx.FileProvider{Path: *fromFile} } else { provider = &dockerx.FakeProvider{} }
+        svcs, err := core.Discover(provider, "host", "tn")
+        if err != nil { fmt.Fprintln(errOut, err); return 1 }
         if *jsonOut {
             enc := json.NewEncoder(out)
             enc.SetIndent("", "  ")
-            _ = enc.Encode(demo)
+            _ = enc.Encode(svcs)
         } else {
-            fmt.Fprintf(out, "%d services\n", len(demo))
-            for _, s := range demo {
+            fmt.Fprintf(out, "%d services\n", len(svcs))
+            for _, s := range svcs {
                 fmt.Fprintf(out, "- %s (%s) %s\n", s.Name, s.ID, s.Host)
             }
         }

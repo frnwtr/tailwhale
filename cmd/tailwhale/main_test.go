@@ -44,8 +44,8 @@ func TestList(t *testing.T) {
     if code != 0 {
         t.Fatalf("expected exit 0, got %d", code)
     }
-    s := buf.String()
-    if !strings.Contains(s, "1 services") || !strings.Contains(s, "demo.host.tn.ts.net") {
-        t.Fatalf("unexpected output: %s", s)
+    // With default fake provider, no items
+    if !strings.Contains(buf.String(), "0 services") {
+        t.Fatalf("unexpected output: %s", buf.String())
     }
 }
