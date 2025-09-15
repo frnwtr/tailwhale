@@ -1,5 +1,8 @@
 # TailWhale
 
+![CI](https://github.com/frnwtr/tailwhale/actions/workflows/ci.yml/badge.svg)
+![PR Template Check](https://github.com/frnwtr/tailwhale/actions/workflows/pr-template-check.yml/badge.svg)
+
 A tool to automatically sync **Tailscale certificates**, **Traefik routing**, and optionally **DNS/Funnel exposure** for Docker containers — expose services over your tailnet or Internet via HTTPS, with zero manual label editing required.  
 
 ---
@@ -80,13 +83,37 @@ Official website: [https://tailwhale.sh](https://tailwhale.sh)
 - Or sidecar Tailscale containers (Mode B)  
 - Or Funnel enabled on host/container (Mode C)  
 
-### CLI usage
+### CLI usage (current)
 ```bash
-tailwhale sync       # full sync
-tailwhale watch      # daemon mode
-tailwhale list       # show exposed services
-tailwhale expose --container myapp --host myapp.ts.net
-tailwhale unexpose myapp
+# one-off sync: discover → issue cert paths → write traefik/tls.yml
+tailwhale sync \
+  --host host1 --tailnet tn \
+  --tls-path traefik/tls.yml --cert-dir /var/lib/tailwhale/certs 
+
+# watch: prefer Docker events (when built with tag `docker`), fallback to interval
+tailwhale watch \
+  --host host1 --tailnet tn \
+  --tls-path traefik/tls.yml --cert-dir /var/lib/tailwhale/certs \
+  --interval 10s
+
+# list: show resolved services; load containers from JSON for offline dev
+tailwhale list --json
+tailwhale list --from-file ./examples/containers.json
+```
+
+Makefile demo
+- Run `make demo` to list services from `examples/containers.json` and write a preview TLS file to `/tmp/tailwhale_tls.yml` using `examples/tailwhale.json`.
+
+Config file (optional)
+- Pass `--config examples/tailwhale.json` to `sync`/`watch` to set `host`, `tailnet`, `tlsPath`, `certDir`.
+- Flag values override file values.
+```json
+{
+  "host": "host1",
+  "tailnet": "tn",
+  "tlsPath": "traefik/tls.yml",
+  "certDir": "/var/lib/tailwhale/certs"
+}
 ```
 
 ### Docker CLI plugin usage
@@ -94,6 +121,17 @@ tailwhale unexpose myapp
 docker tailwhale expose myapp --host myapp.ts.net
 docker tailwhale list
 ```
+
+---
+
+## 🧪 Build Notes
+
+- Default build uses a fake Docker provider (no external deps).  
+- To use the real Docker provider, build with tag `docker`:
+  ```bash
+  go build -tags docker ./cmd/tailwhale
+  ```
+  Watch mode will then react to Docker events and rewrite `tls.yml` atomically.
 
 ---
 

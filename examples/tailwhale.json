@@ -1,0 +1,7 @@
+{
+  "host": "host1",
+  "tailnet": "tn",
+  "tlsPath": "traefik/tls.yml",
+  "certDir": "/var/lib/tailwhale/certs"
+}
+
