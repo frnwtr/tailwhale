@@ -1,0 +1,29 @@
+{
+  "name": "tailwhale-ui",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "prepare": "husky install",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check --error-on-warnings .",
+    "format": "biome format --write .",
+    "test": "echo 'No UI tests yet' && exit 0"
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "typescript": "5.5.4",
+    "@biomejs/biome": "1.8.3",
+    "husky": "9.1.6"
+  },
+  "packageManager": "pnpm@9.7.0"
+}

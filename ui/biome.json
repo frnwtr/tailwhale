@@ -1,0 +1,18 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.8.3/schema.json",
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "a11y": { "useValidAriaProps": "warn" },
+      "style": { "useConst": "warn" }
+    }
+  },
+  "organizeImports": { "enabled": true },
+  "vcs": { "clientKind": "git" }
+}
+

@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh" 2>/dev/null || true
+
+MSG_FILE="$1"
+FIRST_LINE="$(head -n1 "$MSG_FILE" 2>/dev/null)"
+
+# Allow merges, fixup/squash, and tag-only release commits
+echo "$FIRST_LINE" | grep -Eq '^(Merge|fixup!|squash!|Revert|v?[0-9]+\.[0-9]+\.[0-9]+$)' && exit 0
+
+TYPES='build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test|release'
+CONVENTIONAL_REGEX="^(${TYPES})(\([a-z0-9._-]+\))?(!)?: .+"
+
+if echo "$FIRST_LINE" | grep -Eq "$CONVENTIONAL_REGEX"; then
+  exit 0
+fi
+
+echo "\n✖ Commit message must follow Conventional Commits" >&2
+echo "  Got:   $FIRST_LINE" >&2
+echo "  Expect: <type>(scope)?: short description" >&2
+echo "  Types:  build,chore,ci,docs,feat,fix,perf,refactor,revert,style,test,release" >&2
+echo "  Examples:" >&2
+echo "    feat(cli): add watch mode for Mode A" >&2
+echo "    fix(traefik): stable tls.yml sort order" >&2
+echo "    docs(readme): clarify Funnel mode" >&2
+exit 1
+
