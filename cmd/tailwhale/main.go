@@ -107,15 +107,26 @@ func run(args []string) int {
         fs.SetOutput(errOut)
         host := fs.String("host", "host", "host name for mode A/C")
         tailnet := fs.String("tailnet", "tn", "tailnet name")
-        interval := fs.Duration("interval", 10*time.Second, "sync interval")
+        tlsPath := fs.String("tls-path", "traefik/tls.yml", "path to write Traefik TLS yaml")
+        certDir := fs.String("cert-dir", "/var/lib/tailwhale/certs", "directory for issued certs (stub)")
+        interval := fs.Duration("interval", 10*time.Second, "sync interval (fallback)")
         if err := fs.Parse(args[1:]); err != nil {
             return 2
         }
-        orch := core.Orchestrator{Provider: &dockerx.FakeProvider{}, Host: *host, Tailnet: *tailnet}
+        provider := dockerx.NewProvider()
+        orch := core.Orchestrator{Provider: provider, Host: *host, Tailnet: *tailnet}
+        // Configure tailscale manager and TLS writer
+        orch.Manager = &ts.FileManager{Dir: *certDir}
+        orch.WriteTLS = func(cfg traefik.TLSConfig) error {
+            data := traefik.MarshalYAML(cfg)
+            return fsx.WriteFileAtomic(*tlsPath, data, 0o644)
+        }
         ctx, cancel := context.WithCancel(context.Background())
         defer cancel()
-        _ = orch.Watch(ctx, *interval, func(_ []core.Service, tlsCfg traefik.TLSConfig){
-            fmt.Fprint(out, string(coreYaml(tlsCfg)))
+        fmt.Fprintln(out, "watching for container changes...")
+        _ = orch.Watch(ctx, *interval, func(svcs []core.Service, tlsCfg traefik.TLSConfig){
+            _ = tlsCfg // already written via WriteTLS; optionally print summary
+            fmt.Fprintf(out, "synced %d services\n", len(svcs))
         })
         return 0
     default:
