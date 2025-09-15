@@ -133,6 +133,18 @@ docker tailwhale list
   ```
   Watch mode will then react to Docker events and rewrite `tls.yml` atomically.
 
+### Optional TUI (Bubble Tea)
+- A minimal terminal UI is scaffolded behind the `tui` build tag using Bubble Tea.
+- Install deps and build:
+  ```bash
+  # add dependency once (when you want to build the TUI)
+  go get github.com/charmbracelet/bubbletea@latest
+  # build the TUI binary (tagged to avoid affecting default CI builds)
+  go build -tags tui ./cmd/twui
+  ./twui
+  ```
+  The TUI lists discovered services and supports `r` to refresh and `q` to quit.
+
 ---
 
 ## 🔮 Roadmap
