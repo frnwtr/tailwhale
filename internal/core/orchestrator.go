@@ -6,6 +6,7 @@ import (
 
     "github.com/frnwtr/tailwhale/internal/dockerx"
     tcfg "github.com/frnwtr/tailwhale/internal/traefik"
+    ts "github.com/frnwtr/tailwhale/internal/tailscale"
 )
 
 // Orchestrator ties discovery to config writers and cert managers.
@@ -13,6 +14,7 @@ type Orchestrator struct {
     Provider dockerx.Provider
     Host     string
     Tailnet  string
+    Manager  ts.Manager
 }
 
 // SyncOnce discovers services and returns a TLS config view.
@@ -21,7 +23,14 @@ func (o Orchestrator) SyncOnce(ctx context.Context) ([]Service, tcfg.TLSConfig, 
     if err != nil { return nil, nil, err }
     tls := make(tcfg.TLSConfig)
     for _, s := range svcs {
-        // Placeholder: paths are deterministic placeholders
+        if o.Manager != nil {
+            c, err := o.Manager.Ensure(s.Host)
+            if err == nil {
+                tls[s.Host] = tcfg.TLSCert{CertFile: c.Path, KeyFile: c.KeyPath}
+                continue
+            }
+        }
+        // Placeholder fallback paths
         tls[s.Host] = tcfg.TLSCert{CertFile: "/var/lib/tailwhale/certs/"+s.Name+".crt", KeyFile: "/var/lib/tailwhale/certs/"+s.Name+".key"}
     }
     _ = ctx // reserved for future timeouts/cancellations
@@ -44,4 +53,3 @@ func (o Orchestrator) Watch(ctx context.Context, interval time.Duration, fn func
         }
     }
 }
-

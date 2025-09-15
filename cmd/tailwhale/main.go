@@ -13,6 +13,7 @@ import (
     "github.com/frnwtr/tailwhale/internal/dockerx"
     "github.com/frnwtr/tailwhale/internal/fsx"
     traefik "github.com/frnwtr/tailwhale/internal/traefik"
+    ts "github.com/frnwtr/tailwhale/internal/tailscale"
 )
 
 // Version is set at build time via -ldflags if desired.
@@ -82,10 +83,11 @@ func run(args []string) int {
         host := fs.String("host", "host", "host name for mode A/C")
         tailnet := fs.String("tailnet", "tn", "tailnet name")
         tlsPath := fs.String("tls-path", "traefik/tls.yml", "path to write Traefik TLS yaml")
+        certDir := fs.String("cert-dir", "/var/lib/tailwhale/certs", "directory for issued certs (stub)")
         if err := fs.Parse(args[1:]); err != nil {
             return 2
         }
-        orch := core.Orchestrator{Provider: &dockerx.FakeProvider{}, Host: *host, Tailnet: *tailnet}
+        orch := core.Orchestrator{Provider: &dockerx.FakeProvider{}, Host: *host, Tailnet: *tailnet, Manager: &ts.FileManager{Dir: *certDir}}
         svcs, tls, err := orch.SyncOnce(context.Background())
         if err != nil { fmt.Fprintln(errOut, err); return 1 }
         fmt.Fprintf(out, "Synced %d services\n", len(svcs))
