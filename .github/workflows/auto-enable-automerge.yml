@@ -1,0 +1,37 @@
+name: Auto Enable Auto‑Merge
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable auto‑merge (squash)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) return;
+            if (pr.draft) return; // skip drafts
+            const id = pr.node_id;
+            // Attempt to enable auto-merge with squash; ignore if not allowed
+            try {
+              await github.graphql(
+                `mutation($prId: ID!) {
+                  enablePullRequestAutoMerge(input: { pullRequestId: $prId, mergeMethod: SQUASH }) {
+                    clientMutationId
+                  }
+                }`,
+                { prId: id }
+              );
+              core.info('Auto‑merge enabled');
+            } catch (e) {
+              core.info('Could not enable auto‑merge: ' + (e.message || e));
+            }
+
