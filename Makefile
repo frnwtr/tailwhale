@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: help build test dev ui-dev ui-build go-build go-test
+.PHONY: help build test dev ui-dev ui-build go-build go-test demo
 
 help:
 	@echo "Available targets:"
@@ -11,6 +11,7 @@ help:
 	@echo "  ui-build - Build UI for production"
 	@echo "  go-build - Build Go CLI if cmd/tailwhale exists"
 	@echo "  go-test  - Run Go tests if Go sources exist"
+	@echo "  demo     - Run CLI demo with examples"
 
 build: go-build ui-build
 
@@ -51,3 +52,9 @@ go-test:
 		echo "[skip] no Go files found"; \
 	fi
 
+demo:
+	@echo "Listing services from examples/containers.json";
+	@go run ./cmd/tailwhale list --from-file examples/containers.json || (go build ./cmd/tailwhale && ./tailwhale list --from-file examples/containers.json);
+	@echo "Writing tls.yml preview to /tmp/tailwhale_tls.yml using examples/tailwhale.json";
+	@go run ./cmd/tailwhale sync --config examples/tailwhale.json --tls-path /tmp/tailwhale_tls.yml || ./tailwhale sync --config examples/tailwhale.json --tls-path /tmp/tailwhale_tls.yml;
+	@echo "Wrote: /tmp/tailwhale_tls.yml";

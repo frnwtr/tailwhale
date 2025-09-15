@@ -1,0 +1,22 @@
+[
+  {
+    "ID": "1a2b3c",
+    "Name": "web",
+    "Labels": {
+      "tailwhale.enable": "true",
+      "tailwhale.mode": "A"
+    },
+    "Ports": [80, 443],
+    "Running": true
+  },
+  {
+    "ID": "4d5e6f",
+    "Name": "db",
+    "Labels": {
+      "tailwhale.enable": "false"
+    },
+    "Ports": [5432],
+    "Running": true
+  }
+]
+

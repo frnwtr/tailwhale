@@ -18,6 +18,17 @@
 - UI dev: `cd ui && pnpm install && pnpm dev` — Next.js dev server.
 - UI build: `cd ui && pnpm build` — production build.
 
+## CLI Usage & Config
+- `tailwhale sync`: one-off discover → cert paths → write `traefik/tls.yml`. Flags: `--host`, `--tailnet`, `--tls-path`, `--cert-dir`, `--config <json>`.
+- `tailwhale watch`: event-driven (Docker) with ticker fallback; writes `tls.yml` atomically each sync. Same flags as `sync` plus `--interval`.
+- `tailwhale list`: `--json` for machine output; `--from-file <containers.json>` for offline dev. See `examples/containers.json`.
+- Config file example (JSON): `{ "host": "host1", "tailnet": "tn", "tlsPath": "traefik/tls.yml", "certDir": "/var/lib/tailwhale/certs" }`. Flags override.
+  - Sample config at `examples/tailwhale.json`.
+
+## Docker Provider (Build Tags)
+- Default build uses a fake provider (no Docker SDK required).
+- Real provider behind tag `docker`: `go build -tags docker ./cmd/tailwhale` to enable Docker events-based watch.
+
 ## Node Setup (pnpm/Corepack)
 - Enable Corepack: `corepack enable`
 - Activate pnpm: `corepack prepare pnpm@latest --activate`
@@ -33,6 +44,7 @@
 ## Testing Guidelines
 - Go: place tests in `*_test.go`; name `TestXxx`; prefer table-driven tests. Run `go test ./... -race -cover`. Aim for ~80% package-level coverage where practical.
 - UI: `cd ui && pnpm typecheck && pnpm lint && pnpm test` (tests stubbed initially). Add screenshots for UI PRs that change visuals.
+- Golden tests: see `internal/traefik/tlswriter_golden_test.go` to assert deterministic `tls.yml` output.
 
 ## Commit & Pull Request Guidelines
 - Commits: Conventional Commits style. Examples:
@@ -42,6 +54,11 @@
 - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`, `release`. Format: `type(scope)?: subject`.
 - Hook enforcement: Husky `commit-msg` validates Conventional Commits; `pre-commit` runs `pnpm -C ui typecheck && pnpm -C ui lint`. Run `pnpm install` in `ui/` so `prepare` installs hooks.
 - PRs: include description, linked issues, affected exposure modes (A/B/C), test evidence (`go test` output or UI screenshots), and upgrade notes if user-facing behavior changes. If UI deps change, commit `pnpm-lock.yaml` updates. Use the template in `.github/pull_request_template.md`.
+
+## Agent Rules
+- Keep documentation updated: whenever commands, flags, config, file paths, CI, or examples change, update `README.md`, `AGENTS.md`, and `examples/` in the same PR.
+- Respect the PR template: agent-created PRs must fully fill out the template (Summary, Linked Issues, Affected Areas, Screenshots, Test & Checks, Notes) and pass all required checks before requesting review or enabling auto-merge.
+- PR body enforcement: CI workflow `pr-template-check.yml` fails if required sections are missing from the PR description.
 
 ## Branching Workflow
 - Stay updated: `git fetch origin && git switch main && git pull --ff-only`.
