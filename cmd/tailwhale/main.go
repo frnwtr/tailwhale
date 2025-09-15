@@ -1,10 +1,13 @@
 package main
 
 import (
+    "encoding/json"
     "flag"
     "fmt"
     "io"
     "os"
+
+    "github.com/frnwtr/tailwhale/internal/core"
 )
 
 // Version is set at build time via -ldflags if desired.
@@ -48,10 +51,28 @@ func run(args []string) int {
     case "list":
         fs := flag.NewFlagSet("list", flag.ContinueOnError)
         fs.SetOutput(errOut)
+        jsonOut := fs.Bool("json", false, "output JSON")
         if err := fs.Parse(args[1:]); err != nil {
             return 2
         }
-        fmt.Fprintln(out, "No services to list yet (skeleton)")
+        // Skeleton demo data using core naming
+        demo := []core.Service{{
+            ID:      "demo-1",
+            Name:    "demo",
+            Exposed: false,
+            Mode:    core.ModeA,
+            Host:    core.HostnameFor(core.ModeA, core.NameInput{Container: "demo", Host: "host", Tailnet: "tn"}),
+        }}
+        if *jsonOut {
+            enc := json.NewEncoder(out)
+            enc.SetIndent("", "  ")
+            _ = enc.Encode(demo)
+        } else {
+            fmt.Fprintf(out, "%d services\n", len(demo))
+            for _, s := range demo {
+                fmt.Fprintf(out, "- %s (%s) %s\n", s.Name, s.ID, s.Host)
+            }
+        }
         return 0
     case "sync":
         fs := flag.NewFlagSet("sync", flag.ContinueOnError)
