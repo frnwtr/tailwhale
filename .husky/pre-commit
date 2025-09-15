@@ -8,4 +8,4 @@ command -v pnpm >/dev/null 2>&1 || {
 }
 
 # Run UI checks
-pnpm -C ui typecheck && pnpm -C ui lint
+pnpm -C ui format && pnpm -C ui typecheck && pnpm -C ui lint
