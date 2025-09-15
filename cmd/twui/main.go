@@ -26,7 +26,12 @@ func initialModel() model {
 }
 
 func (m model) Init() tea.Cmd {
-    return fetchServices(m.host, m.tailnet)
+    ctx, cancel := context.WithCancel(context.Background())
+    ch := make(chan servicesMsg, 4)
+    m.updates = ch
+    m.ctx = ctx
+    m.cancel = cancel
+    return tea.Batch(startWatch(m.host, m.tailnet, ctx, ch), fetchServices(m.host, m.tailnet), listen(ch))
 }
 
 func fetchServices(host, tailnet string) tea.Cmd {
@@ -41,20 +46,45 @@ func fetchServices(host, tailnet string) tea.Cmd {
 }
 
 type listMsg struct{ items []core.Service }
+type servicesMsg struct{ items []core.Service }
 type errMsg struct{ err error }
+
+func startWatch(host, tailnet string, ctx context.Context, ch chan servicesMsg) tea.Cmd {
+    return func() tea.Msg {
+        go func() {
+            provider := dockerx.NewProvider()
+            orch := core.Orchestrator{Provider: provider, Host: host, Tailnet: tailnet}
+            _ = orch.Watch(ctx, 5*time.Second, func(svcs []core.Service, _ traefik.TLSConfig) {
+                select {
+                case ch <- servicesMsg{items: svcs}:
+                case <-ctx.Done():
+                }
+            })
+        }()
+        return nil
+    }
+}
+
+func listen(ch <-chan servicesMsg) tea.Cmd { return func() tea.Msg { return <-ch } }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     switch msg := msg.(type) {
     case tea.KeyMsg:
         switch msg.String() {
         case "ctrl+c", "q":
+            if m.cancel != nil { m.cancel() }
             return m, tea.Quit
+        case "up", "k":
+            if m.selected > 0 { m.selected-- }
+        case "down", "j":
+            if m.selected < len(m.items)-1 { m.selected++ }
         case "r":
             return m, fetchServices(m.host, m.tailnet)
         }
     case listMsg:
         m.loading = false
         m.items = msg.items
+        if m.selected >= len(m.items) { m.selected = len(m.items) - 1 }
     case errMsg:
         m.loading = false
         m.err = msg.err
@@ -71,14 +101,19 @@ func (m model) View() string {
     if m.err != nil {
         return fmt.Sprintf("TailWhale TUI — error: %v (r to retry, q to quit)\n", m.err)
     }
-    s := "TailWhale TUI — services (r to refresh, q to quit)\n\n"
+    header := "TailWhale TUI — services (↑/k, ↓/j, r to refresh, q to quit)\n\n"
     if len(m.items) == 0 {
-        s += "No services found.\n"
-        return s
+        return header + "No services found.\n"
     }
-    for _, it := range m.items {
-        s += fmt.Sprintf("• %s → %s\n", it.Name, it.Host)
+    s := header
+    for i, it := range m.items {
+        cursor := "  "
+        if i == m.selected { cursor = "> " }
+        s += fmt.Sprintf("%s%s → %s\n", cursor, it.Name, it.Host)
     }
+    sel := m.items[m.selected]
+    s += "\nDetails:\n"
+    s += fmt.Sprintf("  Name: %s\n  Host: %s\n  Mode: %d\n  Ports: %v\n", sel.Name, sel.Host, sel.Mode, sel.Ports)
     return s
 }
 
@@ -90,4 +125,3 @@ func main() {
     }
     _ = time.Second
 }
-
