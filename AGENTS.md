@@ -5,7 +5,7 @@
 - `docker/`: Docker API access and event stream. (planned)
 - `tailscale/`: certs, MagicDNS checks, Funnel control. (planned)
 - `traefik/`: TLS file writer and watchers. (planned)
-- `cmd/tailwhale`: Go CLI entrypoint (sync, watch, list). (planned)
+- `cmd/tailwhale`: Go CLI entrypoint (sync, watch, list).
 - `cmd/extension-api`: REST backend for UI. (planned)
 - `ui/`: Next.js frontend (scaffolded in this repo).
 
