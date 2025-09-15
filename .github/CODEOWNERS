@@ -1,0 +1,18 @@
+# CODEOWNERS defines who reviews and approves changes by path.
+# Update branch protection to "Require review from Code Owners" to enforce.
+
+# Default owner for entire repo
+* @frnwtr
+
+# UI (Next.js + TS)
+ui/ @frnwtr
+
+# Go CLI and backends
+cmd/ @frnwtr
+core/ @frnwtr
+docker/ @frnwtr
+tailscale/ @frnwtr
+traefik/ @frnwtr
+
+# Docs
+*.md @frnwtr
