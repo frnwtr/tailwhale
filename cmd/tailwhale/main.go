@@ -11,6 +11,7 @@ import (
 
     "github.com/frnwtr/tailwhale/internal/core"
     "github.com/frnwtr/tailwhale/internal/dockerx"
+    "github.com/frnwtr/tailwhale/internal/fsx"
     traefik "github.com/frnwtr/tailwhale/internal/traefik"
 )
 
@@ -83,6 +84,7 @@ func run(args []string) int {
         fs.SetOutput(errOut)
         host := fs.String("host", "host", "host name for mode A/C")
         tailnet := fs.String("tailnet", "tn", "tailnet name")
+        tlsPath := fs.String("tls-path", "traefik/tls.yml", "path to write Traefik TLS yaml")
         if err := fs.Parse(args[1:]); err != nil {
             return 2
         }
@@ -90,7 +92,12 @@ func run(args []string) int {
         svcs, tls, err := orch.SyncOnce(context.Background())
         if err != nil { fmt.Fprintln(errOut, err); return 1 }
         fmt.Fprintf(out, "Synced %d services\n", len(svcs))
-        fmt.Fprint(out, string(coreYaml(tls)))
+        data := traefik.MarshalYAML(tls)
+        if err := fsx.WriteFileAtomic(*tlsPath, data, 0o644); err != nil {
+            fmt.Fprintf(errOut, "failed to write %s: %v\n", *tlsPath, err)
+            return 1
+        }
+        fmt.Fprintf(out, "Wrote %s (%d bytes)\n", *tlsPath, len(data))
         return 0
     case "watch":
         fs := flag.NewFlagSet("watch", flag.ContinueOnError)
