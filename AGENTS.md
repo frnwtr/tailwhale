@@ -59,6 +59,7 @@
 - Keep documentation updated: whenever commands, flags, config, file paths, CI, or examples change, update `README.md`, `AGENTS.md`, and `examples/` in the same PR.
 - Respect the PR template: agent-created PRs must fully fill out the template (Summary, Linked Issues, Affected Areas, Screenshots, Test & Checks, Notes) and pass all required checks before requesting review or enabling auto-merge.
 - PR body enforcement: CI workflow `pr-template-check.yml` fails if required sections are missing from the PR description.
+- Auto-close issues: include closing keywords (e.g., `Closes #123`) in the PR body under Linked Issues so issues close automatically on merge.
 
 ## Branching Workflow
 - Stay updated: `git fetch origin && git switch main && git pull --ff-only`.
