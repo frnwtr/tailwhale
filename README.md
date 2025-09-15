@@ -99,8 +99,8 @@ docker tailwhale list
 
 ## 🔮 Roadmap
 
-- [x] Auto certs with Tailscale  
-- [x] Dynamic TLS config for Traefik  
+- [ ] Auto certs with Tailscale  
+- [ ] Dynamic TLS config for Traefik  
 - [ ] CLI toggle for exposure mode (A, B, C)  
 - [ ] Funnel automation (start/stop, status)  
 - [ ] UI for toggling exposure per service  
@@ -117,7 +117,7 @@ gantt
     title TailWhale Project Timeline
     dateFormat  YYYY-MM-DD
     section MVP
-    CLI Skeleton (sync, watch, list)       :a1, 2025-02-01, 14d
+    CLI Skeleton (sync, watch, list)       :a1, 2025-09-15, 14d
     Auto Certs + TLS File                  :a2, after a1, 14d
     section v1.0
     MagicDNS Integration                   :b1, after a2, 14d
@@ -126,6 +126,7 @@ gantt
     UI / Docker Extension                  :c1, after b2, 21d
     Tailscale API Advanced (Funnel, DNS)   :c2, after c1, 21d
     Metrics + Prometheus Exporter          :c3, after c2, 14d
+```ics + Prometheus Exporter          :c3, after c2, 14d
 ```
 
 ---
