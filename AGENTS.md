@@ -54,6 +54,14 @@ Helper script
 - `scripts/new-branch.sh -t feat -s cli -d "add watch mode" --push --pr`
 - Prompts if flags are omitted; always updates from `origin/main` first.
 
+Rebase helper
+- `scripts/rebase-main.sh` — fetches and rebases current branch onto `origin/main`.
+- Supports `--continue` and `--abort` during conflict resolution.
+
+Release workflow
+- Versioning: use tags like `v0.1.0`. Keep `main` releasable.
+- `scripts/release.sh <version> [--push] [--gh-release]` to tag, push, and optionally create a GitHub release with notes.
+
 ## Security & Configuration Tips
 - Never commit secrets; use `.env` and update `.env.example` when adding vars (e.g., Tailscale auth keys).
 - Restrict file writes to intended paths (e.g., `traefik/tls.yml`).
