@@ -20,3 +20,11 @@ func TestDiscoverLabels(t *testing.T){
     if svcs[1].Name != "app3" || svcs[1].Host != "custom.tn.ts.net" { t.Fatalf("alias not applied: %+v", svcs[1]) }
 }
 
+func TestDiscoverFromInfos(t *testing.T){
+    infos := []dockerx.Info{
+        {ID:"1", Name:"app1", Labels: map[string]string{LabelEnable:"true", LabelMode:"A"}},
+        {ID:"3", Name:"app3", Labels: map[string]string{LabelEnable:"true", LabelMode:"B", LabelHost:"custom.tn.ts.net"}},
+    }
+    svcs := DiscoverFromInfos(infos, "host1", "tn")
+    if len(svcs) != 2 { t.Fatalf("expected 2, got %d", len(svcs)) }
+}

@@ -47,19 +47,42 @@
 - Golden tests: see `internal/traefik/tlswriter_golden_test.go` to assert deterministic `tls.yml` output.
 
 ## Commit & Pull Request Guidelines
-- Commits: Conventional Commits style. Examples:
+- Commits: Conventional Commits. Examples:
   - `feat(cli): add watch mode for Mode A`
   - `fix(traefik): stable tls.yml sort order`
   - `docs(readme): clarify Funnel mode`
-- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`, `release`. Format: `type(scope)?: subject`.
-- Hook enforcement: Husky `commit-msg` validates Conventional Commits; `pre-commit` runs `pnpm -C ui typecheck && pnpm -C ui lint`. Run `pnpm install` in `ui/` so `prepare` installs hooks.
-- PRs: include description, linked issues, affected exposure modes (A/B/C), test evidence (`go test` output or UI screenshots), and upgrade notes if user-facing behavior changes. If UI deps change, commit `pnpm-lock.yaml` updates. Use the template in `.github/pull_request_template.md`.
+- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`, `release`.
+- Hooks: Husky `commit-msg` enforces format; `pre-commit` runs `pnpm -C ui format && pnpm -C ui typecheck && pnpm -C ui lint`.
+- PRs: must use the template. Required sections: Summary, Linked Issues (use `Closes #ID`), Affected Areas, Test & Checks. Keep descriptions specific and link screenshots when UI changes.
 
 ## Agent Rules
-- Keep documentation updated: whenever commands, flags, config, file paths, CI, or examples change, update `README.md`, `AGENTS.md`, and `examples/` in the same PR.
-- Respect the PR template: agent-created PRs must fully fill out the template (Summary, Linked Issues, Affected Areas, Screenshots, Test & Checks, Notes) and pass all required checks before requesting review or enabling auto-merge.
-- PR body enforcement: CI workflow `pr-template-check.yml` fails if required sections are missing from the PR description.
-- Auto-close issues: include closing keywords (e.g., `Closes #123`) in the PR body under Linked Issues so issues close automatically on merge.
+- Keep docs synced: when commands, flags, config, CI, or paths change, update `README.md`, `AGENTS.md`, and `examples/` in the same PR.
+- Use the PR template: fill all required sections; include `Closes #<issue>` so issues auto-close on merge.
+- Required checks: `go`, `ui`, `validate` must pass. Auto‑merge is allowed only after checks succeed.
+- Preflight before PR: `go test ./...` and, if UI changed, `pnpm -C ui typecheck && pnpm -C ui lint && pnpm -C ui build`.
+- One branch per task; avoid committing to `main`.
+
+## PR Template & Auto‑Merge
+- Create with body file:
+  - `gh pr create --base main --head <branch> --title "..." --body-file ./PR_BODY.md`
+- Minimal PR_BODY.md scaffold:
+  - `## Summary` one paragraph
+  - `## Linked Issues` include `Closes #ID`
+  - `## Changes` bullet list
+  - `## Affected Areas` scope
+  - `## Test & Checks` list of commands/evidence
+- Edit and re‑run template check if failed:
+  - `gh pr edit <N> --body-file ./PR_BODY.md`
+  - `gh run list --workflow "PR Template Check" --branch <branch> --limit 1 | xargs -n1 -I{} gh run rerun {}`
+- If checks show “Expected/Waiting”: branch protection must match check‑run names `go`, `ui`, `validate` (not “CI / go”). Update in repo Settings or via API.
+
+Helpers
+- `scripts/pr-body-sample.md`: ready-to-use template matching required sections.
+- `bash scripts/pr-update.sh --generate ./PR_BODY.md`: create a scaffold file.
+- `bash scripts/pr-update.sh --pr <N> --body ./PR_BODY.md`: update PR body and re-run the template check.
+- Make targets:
+  - `make pr-template` → generates `PR_BODY.md` from the sample.
+  - `make pr-update PR=<N>` → updates PR `<N>` using `PR_BODY.md` and re-runs the template check.
 
 ## Branching Workflow
 - Stay updated: `git fetch origin && git switch main && git pull --ff-only`.
@@ -89,7 +112,8 @@ Release workflow
 - Combined CI: `.github/workflows/ci.yml` runs two jobs on PRs:
   - `ui`: pnpm install → typecheck → lint → build (skips if no `ui/`).
   - `go`: `go test ./... -race -cover` (skips if no Go code).
-- Branch protection: in GitHub Settings → Branches, add a rule for your default branch and require status checks `CI / ui` and `CI / go`.
+- PR template check: `.github/workflows/pr-template-check.yml` ensures PR body uses the template.
+- Branch protection: require status checks with names `go`, `ui`, `validate` and “require branches up to date”.
 
 ## Code Owners
 - File: `.github/CODEOWNERS` assigns reviewers by path. Default owner is `@frnwtr` for the whole repo and key directories.

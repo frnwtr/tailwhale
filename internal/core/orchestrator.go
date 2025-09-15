@@ -50,17 +50,72 @@ func (o Orchestrator) Watch(ctx context.Context, interval time.Duration, fn func
     w, err := o.Provider.Watch()
     if err == nil && w != nil {
         defer w.Close()
+        // Build cache from initial snapshot
+        snapshot, _ := o.Provider.List()
+        cache := dockerx.NewCache()
+        cache.ApplySnapshot(snapshot)
+        // Debounce timer
+        debounce := time.NewTimer(0)
+        if !debounce.Stop() { <-debounce.C }
+        const debounceWindow = 1 * time.Second
+        // event loop
         for {
             select {
             case <-ctx.Done():
                 return ctx.Err()
             default:
             }
-            if _, ok, _ := w.Next(); !ok {
-                break // fall back to ticker
+            info, ok, _ := w.Next()
+            if !ok { break }
+            if info.Event == "destroy" {
+                cache.Remove(info.ID)
+            } else {
+                cache.Upsert(info)
             }
-            svcs, tls, err := o.SyncOnce(ctx)
-            if err == nil && fn != nil { fn(svcs, tls) }
+            // reset debounce
+            if !debounce.Stop() { select { case <-debounce.C: default: } }
+            debounce.Reset(debounceWindow)
+
+            // wait for debounce window to fire before syncing
+        debLoop:
+            for {
+                select {
+                case <-ctx.Done():
+                    return ctx.Err()
+                case <-debounce.C:
+                    svcs := DiscoverFromInfos(cache.List(), o.Host, o.Tailnet)
+                    tls := make(tcfg.TLSConfig)
+                    for _, s := range svcs {
+                        if o.Manager != nil {
+                            if c, err := o.Manager.Ensure(s.Host); err == nil {
+                                tls[s.Host] = tcfg.TLSCert{CertFile: c.Path, KeyFile: c.KeyPath}
+                                continue
+                            }
+                        }
+                        tls[s.Host] = tcfg.TLSCert{CertFile: "/var/lib/tailwhale/certs/"+s.Name+".crt", KeyFile: "/var/lib/tailwhale/certs/"+s.Name+".key"}
+                    }
+                    if o.WriteTLS != nil { _ = o.WriteTLS(tls) }
+                    if fn != nil { fn(svcs, tls) }
+                    break debLoop
+                default:
+                    // Accumulate more events until debounce fires, using a worker goroutine to avoid blocking
+                    type res struct{ i dockerx.Info; ok bool }
+                    ch := make(chan res, 1)
+                    go func(){ i, ok, _ := w.Next(); ch <- res{i, ok} }()
+                    select {
+                    case <-ctx.Done():
+                        return ctx.Err()
+                    case r := <-ch:
+                        if !r.ok { break debLoop }
+                        if r.i.Event == "destroy" { cache.Remove(r.i.ID) } else { cache.Upsert(r.i) }
+                        if !debounce.Stop() { select { case <-debounce.C: default: } }
+                        debounce.Reset(debounceWindow)
+                        // continue accumulating
+                    case <-time.After(25 * time.Millisecond):
+                        // no event very briefly; loop continues until timer fires
+                    }
+                }
+            }
         }
     }
 
