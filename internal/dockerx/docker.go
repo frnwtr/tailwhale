@@ -7,6 +7,8 @@ type Info struct {
     Labels  map[string]string
     Ports   []int
     Running bool
+    // Event carries a recent event action (e.g., start, stop, destroy) when originating from a watcher.
+    Event   string
 }
 
 // Watcher emits container events (start/stop/label changes).
@@ -22,4 +24,3 @@ type Provider interface {
     List() ([]Info, error)
     Watch() (Watcher, error)
 }
-

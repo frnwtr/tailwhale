@@ -82,9 +82,9 @@ func (w *dockerWatcher) loop(){
                 // Inspect container and emit Info
                 id := m.Actor.ID
                 if id == "" { continue }
-                go func(cid string){
+                go func(cid string, action string){
                     // separate context to avoid blocking main loop
-                    info := Info{ID: cid}
+                    info := Info{ID: cid, Event: action}
                     // Best-effort inspect; ignore errors
                     if json, err := w.cli.ContainerInspect(w.ctx, cid); err == nil {
                         name := trimSlash(json.Name)
@@ -98,7 +98,7 @@ func (w *dockerWatcher) loop(){
                         info.Running = json.State != nil && json.State.Running
                     }
                     select { case w.out <- info: case <-w.ctx.Done(): }
-                }(id)
+                }(id, m.Action)
             }
         }
     }

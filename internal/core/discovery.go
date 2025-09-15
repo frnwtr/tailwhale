@@ -12,6 +12,11 @@ func Discover(p dockerx.Provider, host, tailnet string) ([]Service, error) {
     if err != nil {
         return nil, err
     }
+    return DiscoverFromInfos(list, host, tailnet), nil
+}
+
+// DiscoverFromInfos computes services from a pre-fetched container list.
+func DiscoverFromInfos(list []dockerx.Info, host, tailnet string) []Service {
     var out []Service
     for _, c := range list {
         if c.Labels[LabelEnable] != "true" {
@@ -34,6 +39,5 @@ func Discover(p dockerx.Provider, host, tailnet string) ([]Service, error) {
         out = append(out, svc)
     }
     sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
-    return out, nil
+    return out
 }
-
