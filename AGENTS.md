@@ -17,6 +17,9 @@
 - Go tests: `go test ./...` — runs unit tests across modules.
 - UI dev: `cd ui && pnpm install && pnpm dev` — Next.js dev server.
 - UI build: `cd ui && pnpm build` — production build.
+- TUI (optional, Bubble Tea): code lives under `cmd/twui` behind tag `tui`.
+  - Install dep: `go get github.com/charmbracelet/bubbletea@latest`
+  - Build: `go build -tags tui ./cmd/twui` then run `./twui`.
 
 ## CLI Usage & Config
 - `tailwhale sync`: one-off discover → cert paths → write `traefik/tls.yml`. Flags: `--host`, `--tailnet`, `--tls-path`, `--cert-dir`, `--config <json>`.
@@ -28,6 +31,7 @@
 ## Docker Provider (Build Tags)
 - Default build uses a fake provider (no Docker SDK required).
 - Real provider behind tag `docker`: `go build -tags docker ./cmd/tailwhale` to enable Docker events-based watch.
+ - TUI behind tag `tui`: `go build -tags tui ./cmd/twui` (adds Bubble Tea dep only when building TUI).
 
 ## Node Setup (pnpm/Corepack)
 - Enable Corepack: `corepack enable`
