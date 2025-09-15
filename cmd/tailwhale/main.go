@@ -63,7 +63,11 @@ func run(args []string) int {
             return 2
         }
         var provider dockerx.Provider
-        if *fromFile != "" { provider = &dockerx.FileProvider{Path: *fromFile} } else { provider = &dockerx.FakeProvider{} }
+        if *fromFile != "" {
+            provider = &dockerx.FileProvider{Path: *fromFile}
+        } else {
+            provider = dockerx.NewProvider()
+        }
         svcs, err := core.Discover(provider, "host", "tn")
         if err != nil { fmt.Fprintln(errOut, err); return 1 }
         if *jsonOut {
